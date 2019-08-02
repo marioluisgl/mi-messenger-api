@@ -79,7 +79,7 @@ class QueryHandler{
 
 		return new Promise( async(resolve, reject) =>{
 			try{
-				User.update({_id: data.id}, data.value, (err, result)=>{
+				User.updateOne({_id: data.id}, data.value, (err, result)=>{
 					if( err ){
 						reject(err);
 					}
@@ -110,6 +110,72 @@ class QueryHandler{
 		});
 	}
 
+	getUserInfo({userId,socketId = false}){
+		let queryProjection = null;
+		if(socketId){
+			queryProjection = {
+				"socketId" : true
+			}
+		} else {
+			queryProjection = {
+				"name" : true,
+				"online" : true,
+				'_id': false,
+				'id': '$_id'
+			}
+		}
+		return new Promise( async (resolve, reject) => {
+			try {
+			User.aggregate([
+				{
+					$match:  {
+						_id : userId
+					}
+				},
+				{
+					$project : queryProjection
+				}
+				], function(err, result) {
+					if( err ){
+						reject(err);
+					}
+					socketId ? resolve(result[0]['socketId']) : resolve(result);
+				});	
+				
+			} catch (error) {
+				reject(error)
+			}
+		});
+	}
+    getChatList(userId){
+		return new Promise( async (resolve, reject) => {
+			try {
+			User.aggregate([
+				{
+					$match: {
+						'socketId': { $ne : userId}
+					}
+				},
+				{
+					$project:{
+						"name" : true,
+						"online" : true,
+						'_id': false,
+						'id': '$_id'
+					}
+				}
+				],  function(err, result) {
+						if( err ){
+							reject(err);
+						}
+						resolve(result);
+				});
+				
+			} catch (error) {
+				reject(error)
+			}
+		});
+	}
 
 
 
